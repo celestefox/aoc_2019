@@ -113,6 +113,22 @@ fn intcode_interpreter(memory: &mut Vec<i64>) -> Result<&mut Vec<i64>, Interpret
     Ok(memory)
 }
 
+fn find_inputs(memory: &Vec<i64>, result: i64) -> (i64, i64) {
+    for noun in 0..=99 {
+        for verb in 0..=99 {
+            let input = &mut memory.clone();
+            input[1] = noun;
+            input[2] = verb;
+            if let Ok(output) = intcode_interpreter(input) {
+                if output[0] == result {
+                    return (noun, verb);
+                }
+            }
+        }
+    }
+    panic!("No inputs that result in desired value found!");
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let lines = read_input("input/day2.txt")?;
     let input = lines.first().expect("no input");
@@ -121,7 +137,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     input_1[1] = 12;
     input_1[2] = 2;
     let output_1 = intcode_interpreter(input_1)?;
-    println!("Day 1 part 1 result: {:?}", output_1[0]);
+    println!("Day 2 part 1 result: {:?}", output_1[0]);
+    // XXX: Not sure if the desired result of 19690720 is specific to me...
+    let (noun, verb) = find_inputs(&input, 19690720);
+    println!("Day 2 part 2: noun {} verb {} result {}", noun, verb, 100*noun+verb);
     Ok(())
 }
 
