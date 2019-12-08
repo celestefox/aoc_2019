@@ -65,13 +65,18 @@ impl fmt::Display for Opcode {
 /// assert_eq!(fetch_address(memory, 0), Ok(1));
 /// assert_eq!(fetch_address(memory, 3), Err(InterpreterError::EndOfMemory));
 /// ```
-fn fetch_address(memory: &Vec<i64>, inst_addr: usize) -> Result<i64, InterpreterError> {
-    memory.get(inst_addr).ok_or(InterpreterError::EndOfMemory).map(|&x| x)
+fn fetch_address(memory: &Vec<i64>, addr: usize) -> Result<i64, InterpreterError> {
+    memory.get(addr).ok_or(InterpreterError::EndOfMemory).map(|&x| x)
 }
 
 fn fetch_parameter(memory: &Vec<i64>, inst_addr: usize, parameter: usize) -> Result<i64, InterpreterError> {
     let dest = fetch_address(memory, inst_addr + parameter)? as usize;
     fetch_address(memory, dest)
+}
+
+fn fetch_dest_parameter(memory: &mut Vec<i64>, inst_addr: usize, parameter: usize) -> Result<&mut i64, InterpreterError> {
+    let dest = fetch_address(memory, inst_addr + parameter)? as usize;
+    memory.get_mut(dest).ok_or(InterpreterError::EndOfMemory)
 }
 
 fn intcode_interpreter(memory: &mut Vec<i64>) -> Result<&mut Vec<i64>, InterpreterError> {
@@ -88,18 +93,16 @@ fn intcode_interpreter(memory: &mut Vec<i64>) -> Result<&mut Vec<i64>, Interpret
         match inst {
             Opcode::Add => {
                 //println!("add: lhsaddr {} rhsaddr {} destaddr {}", memory[ip+1], memory[ip+2], memory[ip+3]);
-                let lhs = fetch_parameter(&memory, ip, 1)?;
-                let rhs = fetch_parameter(&memory, ip, 2)?;
-                let dest = fetch_address(memory, ip + 3)? as usize; // Need the actual address
-                let dest = memory.get_mut(dest).ok_or(InterpreterError::EndOfMemory)?;
+                let lhs = fetch_parameter(memory, ip, 1)?;
+                let rhs = fetch_parameter(memory, ip, 2)?;
+                let dest = fetch_dest_parameter(memory, ip, 3)?;
                 *dest = lhs + rhs;
                 ip += 4;
             }
             Opcode::Multiply => {
-                let lhs = fetch_parameter(&memory, ip, 1)?;
-                let rhs = fetch_parameter(&memory, ip, 2)?;
-                let dest = fetch_address(memory, ip + 3)? as usize; // Need the actual address
-                let dest = memory.get_mut(dest).ok_or(InterpreterError::EndOfMemory)?;
+                let lhs = fetch_parameter(memory, ip, 1)?;
+                let rhs = fetch_parameter(memory, ip, 2)?;
+                let dest = fetch_dest_parameter(memory, ip, 3)?;
                 *dest = lhs * rhs;
                 ip += 4;
             }
