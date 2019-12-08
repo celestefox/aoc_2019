@@ -7,12 +7,6 @@ use std::fmt;
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
 enum InterpreterError {
     EndOfMemory,
-    /*InvalidOperandAddress {
-        codeaddr: usize,
-        code: Opcode,
-        operand: usize,
-        dest: usize,
-    },*/
     InvalidOpcode {
         address: usize,
         code: i64, // Cannot use Opcode because not being a valid Opcode *is* the error
@@ -23,12 +17,6 @@ impl fmt::Display for InterpreterError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let err: String = match self {
             InterpreterError::EndOfMemory => "Fetch past end of memory".to_string(),
-            /*InterpreterError::InvalidOperandAddress {
-                codeaddr,
-                code,
-                operand,
-                dest,
-            } => format!("Invalid operand address: tried to access address {} because of operand {} of {}({})", dest, operand, code, codeaddr),*/
             InterpreterError::InvalidOpcode { address, code } => {
                 format!("Invalid opcode: {}({})", code, address)
             }
