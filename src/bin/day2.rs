@@ -5,8 +5,13 @@ use std::error::Error;
 use std::fmt;
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq)]
+/// An interpreter error. These indicate unrecoverable failure of the IntCode interpreter.
 enum InterpreterError {
+    /// Tried to fetch from an invalid address in memory. This should only be
+    /// possible with an address that points outside the memory space.
     EndOfMemory,
+    /// Tried to execute an invalid (unknown) opcode. Holds the address at
+    /// which the invalid opcode was encountered and the value of the opcode.
     InvalidOpcode {
         address: usize,
         code: i64, // Cannot use Opcode because not being a valid Opcode *is* the error
@@ -29,10 +34,11 @@ impl Error for InterpreterError {}
 
 #[derive(Debug, PartialOrd, Ord, PartialEq, Eq, TryFromPrimitive)]
 #[repr(i64)]
+/// An IntCode opcode.
 enum Opcode {
-    Add = 1,
-    Multiply = 2,
-    Halt = 99,
+    Add = 1, // 3 parameters
+    Multiply = 2, // 3 parameters
+    Halt = 99, // 0 parameters
 }
 
 impl fmt::Display for Opcode {
@@ -49,12 +55,22 @@ impl fmt::Display for Opcode {
     }
 }
 
-fn fetch_address(memory: &Vec<i64>, address: usize) -> Result<i64, InterpreterError> {
-    memory.get(address).ok_or(InterpreterError::EndOfMemory).map(|&x| x)
+/// Fetch the value at an address in IntCode memory.
+/// 
+/// # Examples
+/// 
+/// ```
+/// let memory = vec![1,2,3];
+/// 
+/// assert_eq!(fetch_address(memory, 0), Ok(1));
+/// assert_eq!(fetch_address(memory, 3), Err(InterpreterError::EndOfMemory));
+/// ```
+fn fetch_address(memory: &Vec<i64>, inst_addr: usize) -> Result<i64, InterpreterError> {
+    memory.get(inst_addr).ok_or(InterpreterError::EndOfMemory).map(|&x| x)
 }
 
-fn fetch_operand(memory: &Vec<i64>, opcode_addr: usize, operand: usize) -> Result<i64, InterpreterError> {
-    let dest = fetch_address(memory, opcode_addr + operand)? as usize;
+fn fetch_parameter(memory: &Vec<i64>, inst_addr: usize, parameter: usize) -> Result<i64, InterpreterError> {
+    let dest = fetch_address(memory, inst_addr + parameter)? as usize;
     fetch_address(memory, dest)
 }
 
@@ -72,25 +88,23 @@ fn intcode_interpreter(memory: &mut Vec<i64>) -> Result<&mut Vec<i64>, Interpret
         match inst {
             Opcode::Add => {
                 //println!("add: lhsaddr {} rhsaddr {} destaddr {}", memory[ip+1], memory[ip+2], memory[ip+3]);
-                let lhs = fetch_operand(&memory, ip, 1)?;
-                let rhs = fetch_operand(&memory, ip, 2)?;
+                let lhs = fetch_parameter(&memory, ip, 1)?;
+                let rhs = fetch_parameter(&memory, ip, 2)?;
                 let dest = fetch_address(memory, ip + 3)? as usize; // Need the actual address
                 let dest = memory.get_mut(dest).ok_or(InterpreterError::EndOfMemory)?;
                 *dest = lhs + rhs;
+                ip += 4;
             }
             Opcode::Multiply => {
-                let lhs = fetch_operand(&memory, ip, 1)?;
-                let rhs = fetch_operand(&memory, ip, 2)?;
+                let lhs = fetch_parameter(&memory, ip, 1)?;
+                let rhs = fetch_parameter(&memory, ip, 2)?;
                 let dest = fetch_address(memory, ip + 3)? as usize; // Need the actual address
                 let dest = memory.get_mut(dest).ok_or(InterpreterError::EndOfMemory)?;
                 *dest = lhs * rhs;
+                ip += 4;
             }
             Opcode::Halt => halt = true,
         }
-        // By default, increment 4 for each opcode
-        // TODO: revisit if jmp instructions exist-probably need to change to
-        // ip increment in the handling of each inst
-        ip += 4;
     }
     // Halted safely, return the state of the memory, for now, to determine results with
     Ok(memory)
