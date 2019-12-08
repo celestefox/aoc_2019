@@ -126,6 +126,27 @@ fn closest_manhattan_intersection(grid: &Grid, num_wires: usize) -> Option<(&Poi
     }
     result
 }
+// usize instead because we store a usize wire distance, instead of manhattan now
+fn closest_latency_intersection(grid: &Grid, num_wires: usize) -> Option<(&Point, usize)> {
+    let mut result = None;
+    'grid: for (coord, coord_wires) in grid.iter() {
+        for wire in 0..num_wires {
+            if !coord_wires.contains_key(&wire) {
+                continue 'grid;
+            }
+        }
+        //println!("Intersection found: {:?} {:?}", coord, coord_wires);
+        let new_distance = coord_wires.values().sum();
+        if let Some((_, old_distance)) = result {
+            if new_distance < old_distance {
+                result = Some((coord, new_distance))
+            }
+        } else {
+            result = Some((coord, new_distance))
+        }
+    }
+    result
+}
 
 fn line_to_segments(line: &String) -> Vec<WireSegment> {
     line.split(',')
@@ -172,7 +193,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     //println!("{:?}", grid);
     let (intersection, distance) = closest_manhattan_intersection(&grid, wires.len()).unwrap();
     println!(
-        "Day 1 part 1: intersection at {:?}, dist {}",
+        "Day 3 part 1: intersection at {:?}, dist {}",
+        intersection, distance
+    );
+    let (intersection, distance) = closest_latency_intersection(&grid, wires.len()).unwrap();
+    println!(
+        "Day 3 part 2: intersection at {:?}, dist {}",
         intersection, distance
     );
     Ok(())
