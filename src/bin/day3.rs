@@ -1,5 +1,5 @@
 use aoc_2019::*;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt;
 
