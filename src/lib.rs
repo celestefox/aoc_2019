@@ -16,6 +16,8 @@
 use std::fs::File;
 use std::io::{self, prelude::*, BufReader};
 
+pub mod intcode;
+
 pub fn read_input(name: &str) -> io::Result<Vec<String>> {
     let file = File::open(name)?;
     let file = BufReader::new(file);
